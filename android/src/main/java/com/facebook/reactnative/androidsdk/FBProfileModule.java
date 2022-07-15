@@ -1,6 +1,7 @@
 package com.facebook.reactnative.androidsdk;
 
 import com.facebook.Profile;
+import com.facebook.ProfileTracker;
 import com.facebook.react.bridge.Callback;
 import com.facebook.react.bridge.NativeModule;
 import com.facebook.react.bridge.ReactContextBaseJavaModule;
@@ -16,9 +17,10 @@ import androidx.annotation.NonNull;
 @ReactModule(name = FBProfileModule.NAME)
 public class FBProfileModule extends ReactContextBaseJavaModule {
     public static final String NAME = "FBProfile";
+    private ProfileTracker mProfileTracker;
 
     public FBProfileModule(ReactApplicationContext reactContext) {
-      super(reactContext);
+        super(reactContext);
     }
 
     @NonNull
@@ -28,14 +30,23 @@ public class FBProfileModule extends ReactContextBaseJavaModule {
   }
 
     /**
-    * Get the current logged profile.
-    * @param callback Use callback to pass the current logged profile back to JS.
-    */
+     * Get the current logged profile.
+     *
+     * @param callback Use callback to pass the current logged profile back to JS.
+     */
     @ReactMethod
-    public void getCurrentProfile(Callback callback) {
-        //Return the profile object as a ReactMap.
-        callback.invoke(Profile.getCurrentProfile() == null
-                ? null
-                : Utility.profileToReactMap(Profile.getCurrentProfile()));
+    public void getCurrentProfile(final Callback callback) {
+      // Return the profile object as a ReactMap.
+      if (Profile.getCurrentProfile() == null) {
+        mProfileTracker = new ProfileTracker() {
+          @Override
+          protected void onCurrentProfileChanged(Profile oldProfile, Profile currentProfile) {
+            callback.invoke(Utility.profileToReactMap(currentProfile));
+            mProfileTracker.stopTracking();
+          }
+        };
+      } else {
+        callback.invoke(Utility.profileToReactMap(Profile.getCurrentProfile()));
+      }
   }
 }
